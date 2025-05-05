@@ -9,7 +9,6 @@
   "categories": [
     "Testing"
   ],
-  
   "main": "./extension.js",
   "contributes": {
     "commands": [
@@ -28,9 +27,12 @@
       {
         "command": "testgenie.generateUnitTests",
         "title": "TestGenie: Generate Unit Tests"
+      },
+      {
+        "command": "testgenie.generateProjectTests",
+        "title": "TestGenie: Generate Tests for Entire Project"
       }
     ],
-  
     "menus": {
       "editor/context": [
         {
@@ -47,6 +49,9 @@
         {
           "command": "testgenie.generateTest",
           "when": "editorLangId == json || editorLangId == yaml"
+        },
+        {
+          "command": "testgenie.generateProjectTests"
         }
       ]
     }
@@ -58,7 +63,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.1.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "testgenie": "file:"
   },
   "devDependencies": {
     "@types/node": "18.x",

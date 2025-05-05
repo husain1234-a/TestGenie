@@ -4,6 +4,62 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 
+// Helper function to get all Python files in workspace
+async function getAllPythonFiles() {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        return [];
+    }
+
+    const pythonFiles = [];
+    for (const folder of workspaceFolders) {
+        const pattern = new vscode.RelativePattern(folder, '**/*.py');
+        const files = await vscode.workspace.findFiles(pattern);
+        pythonFiles.push(...files);
+    }
+    return pythonFiles;
+}
+
+// Helper function to find imports in a Python file
+function findImports(fileContent) {
+    const importRegex = /^(?:from\s+([\w.]+)\s+import\s+[\w\s,]+|import\s+([\w.]+))/gm;
+    const imports = [];
+    let match;
+
+    while ((match = importRegex.exec(fileContent)) !== null) {
+        const importPath = match[1] || match[2];
+        if (importPath) {
+            imports.push(importPath);
+        }
+    }
+    return imports;
+}
+
+// Helper function to get content of imported files
+async function getImportedFilesContent(imports, workspaceFolders) {
+    const importedContents = {};
+
+    for (const importPath of imports) {
+        // Convert import path to file path
+        const possiblePaths = [
+            importPath.replace(/\./g, '/') + '.py',
+            importPath.replace(/\./g, '/') + '/__init__.py'
+        ];
+
+        for (const folder of workspaceFolders) {
+            for (const possiblePath of possiblePaths) {
+                const filePath = path.join(folder.uri.fsPath, possiblePath);
+                if (fs.existsSync(filePath)) {
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    importedContents[importPath] = content;
+                    break;
+                }
+            }
+        }
+    }
+
+    return importedContents;
+}
 
 function getWebviewContent() {
     return `
@@ -256,90 +312,90 @@ function getWebviewContent() {
         </body>
         </html>
     `};
-	class ChatPanel {
-		static currentPanel = undefined;
-		static viewType = 'chatbox';
-	 
-		static createOrShow(extensionUri) {
-			const column = vscode.window.activeTextEditor
-				? vscode.window.activeTextEditor.viewColumn
-				: undefined;
-	 
-			if (ChatPanel.currentPanel) {
-				ChatPanel.currentPanel.panel.reveal(column);
-				return;
-			}
-	 
-			const panel = vscode.window.createWebviewPanel(
-				ChatPanel.viewType,
-				'Chat',
-				column || vscode.ViewColumn.Two,
-				{
-					enableScripts: true,
-					retainContextWhenHidden: true
-				}
-			);
-	 
-			ChatPanel.currentPanel = new ChatPanel(panel, extensionUri);
-		}
-	 
-		constructor(panel, extensionUri) {
-			this.panel = panel;
-			this.extensionUri = extensionUri;
-			this.disposables = [];
-	 
-			// Set initial HTML content
-			this.update();
-	 
-			// Handle messages from webview
-			this.panel.webview.onDidReceiveMessage(
-				async message => {
-					switch (message.type) {
-						case 'message':
-							// Process the message and send response
-							await this.handleMessage(message.content);
-							break;
-					}
-				},
-				null,
-				this.disposables
-			);
-	 
-			// Clean up on dispose
-			this.panel.onDidDispose(
-				() => this.dispose(),
-				null,
-				this.disposables
-			);
-		}
-	 
-		async handleMessage(content) {
-			// Here you can process the message and generate a response
-			// For example, you could call an API or use a chat service
-			const response = `Received: ${content}`;
-		   
-			// Send response back to webview
-			await this.panel.webview.postMessage({
-				type: 'response',
-				content: response
-			});
-		}
-	 
-		update() {
-			this.panel.webview.html = getWebviewContent();
-		}
-	 
-		dispose() {
-			ChatPanel.currentPanel = undefined;
-			this.panel.dispose();
-			while (this.disposables.length) {
-				const disposable = this.disposables.pop();
-				if (disposable) {
-					disposable.dispose();
-				}
-			}
-		}
-	}
+class ChatPanel {
+    static currentPanel = undefined;
+    static viewType = 'chatbox';
+
+    static createOrShow(extensionUri) {
+        const column = vscode.window.activeTextEditor
+            ? vscode.window.activeTextEditor.viewColumn
+            : undefined;
+
+        if (ChatPanel.currentPanel) {
+            ChatPanel.currentPanel.panel.reveal(column);
+            return;
+        }
+
+        const panel = vscode.window.createWebviewPanel(
+            ChatPanel.viewType,
+            'Chat',
+            column || vscode.ViewColumn.Two,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            }
+        );
+
+        ChatPanel.currentPanel = new ChatPanel(panel, extensionUri);
+    }
+
+    constructor(panel, extensionUri) {
+        this.panel = panel;
+        this.extensionUri = extensionUri;
+        this.disposables = [];
+
+        // Set initial HTML content
+        this.update();
+
+        // Handle messages from webview
+        this.panel.webview.onDidReceiveMessage(
+            async message => {
+                switch (message.type) {
+                    case 'message':
+                        // Process the message and send response
+                        await this.handleMessage(message.content);
+                        break;
+                }
+            },
+            null,
+            this.disposables
+        );
+
+        // Clean up on dispose
+        this.panel.onDidDispose(
+            () => this.dispose(),
+            null,
+            this.disposables
+        );
+    }
+
+    async handleMessage(content) {
+        // Here you can process the message and generate a response
+        // For example, you could call an API or use a chat service
+        const response = `Received: ${content}`;
+
+        // Send response back to webview
+        await this.panel.webview.postMessage({
+            type: 'response',
+            content: response
+        });
+    }
+
+    update() {
+        this.panel.webview.html = getWebviewContent();
+    }
+
+    dispose() {
+        ChatPanel.currentPanel = undefined;
+        this.panel.dispose();
+        while (this.disposables.length) {
+            const disposable = this.disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+}
 
 
 async function activate(context) {
@@ -428,7 +484,7 @@ async function activate(context) {
                     ${JSON.stringify(contract, null, 2)}
                     
                     Provide only the Python test code with detailed comments. Do not include any other text.`,
-                    
+
                     java: `Generate Java test cases using JUnit 5 Mockito for this OpenAPI contract. Include edge cases, validation testing, and error scenarios.
                     Focus on:
 					- Happy path testing
@@ -446,7 +502,7 @@ async function activate(context) {
                     ${JSON.stringify(contract, null, 2)}
                     
                     Provide only the Java test code with detailed comments. Do not include any other text.`,
-                    
+
                     nodejs: `Generate Node.js test cases using Jest and Supertest for this OpenAPI contract. Include edge cases, validation testing, and error scenarios.
                     Focus on:
 					- Happy path testing
@@ -487,7 +543,7 @@ async function activate(context) {
                     java: 'java',
                     nodejs: 'js'
                 };
-                
+
                 // Set appropriate test file name based on language
                 let testFileName;
                 if (selectedLanguage.value === 'java') {
@@ -497,7 +553,7 @@ async function activate(context) {
                 } else {
                     testFileName = 'api_tests.py';
                 }
-                
+
                 const testFilePath = path.join(currentDir, testFileName);
 
                 // Add appropriate headers based on language
@@ -541,7 +597,7 @@ ${generatedTests}`;
             vscode.window.showErrorMessage('API key not found. Please configure the extension.');
             return;
         }
-        if(ChatPanel.currentPanel){
+        if (ChatPanel.currentPanel) {
             ChatPanel.currentPanel.dispose();
         }
 
@@ -577,7 +633,7 @@ ${generatedTests}`;
                     case 'sendMessage':
                         try {
                             // Show loading state in UI if needed
-                            const prompt = "If any user asks about you then You are TestGenie a Chat AI developed by Yash Technologies and if user is asking any other question then answer normally dont include your introduction in your response also simply say sorry if user inputs any negative word, the message by user is enclosed under ***user message***. Here is the user message: *** " +message.text+" ***";
+                            const prompt = "If any user asks about you then You are TestGenie a Chat AI developed by Yash Technologies and if user is asking any other question then answer normally dont include your introduction in your response also simply say sorry if user inputs any negative word, the message by user is enclosed under ***user message***. Here is the user message: *** " + message.text + " ***";
                             const result = await model.generateContent(prompt);
                             const response = await result.response;
                             const generatedText = response.text();
@@ -616,7 +672,7 @@ ${generatedTests}`;
             vscode.window.showErrorMessage('No code selected. Please select some code to explain.');
             return;
         }
-        if(ChatPanel.currentPanel){
+        if (ChatPanel.currentPanel) {
             ChatPanel.currentPanel.dispose();
         }
         // Create or show chat panel
@@ -683,19 +739,19 @@ ${generatedTests}`;
             const response = await result.response;
             const explanation = response.text();
 
-             // Also show the selected code in the chat
-             ChatPanel.currentPanel.webview.postMessage({
+            // Also show the selected code in the chat
+            ChatPanel.currentPanel.webview.postMessage({
                 command: 'initialize',
                 text: `Selected code:\n\`\`\`\n${selectedText}\n\`\`\``
             });
-            
+
             // Send the explanation to the chat
             ChatPanel.currentPanel.webview.postMessage({
                 command: 'receiveMessage',
                 text: explanation
             });
 
-           
+
         } catch (error) {
             console.error('AI Response Error:', error);
             vscode.window.showErrorMessage('Failed to explain code: ' + error.message);
@@ -746,11 +802,11 @@ ${generatedTests}`;
                         title: 'Choose Test Framework'
                     }
                 );
-                
+
                 if (!testTypeSelection) {
                     return; // User cancelled
                 }
-                
+
                 testFramework = testTypeSelection.value;
             }
 
@@ -760,12 +816,25 @@ ${generatedTests}`;
                 title: "Generating Unit Tests",
                 cancellable: false
             }, async (progress) => {
-                progress.report({ message: "Analyzing code..." });
+                progress.report({ message: "Analyzing code and imports..." });
 
                 // Get API key
                 let apiKey = await getApiKey(context);
                 if (!apiKey) {
                     throw new Error('API key not found');
+                }
+
+                // For Python files, get imported files content
+                let importedFilesContent = '';
+                if (language === 'python') {
+                    const imports = findImports(fileContent);
+                    const workspaceFolders = vscode.workspace.workspaceFolders;
+                    if (workspaceFolders) {
+                        const importedContents = await getImportedFilesContent(imports, workspaceFolders);
+                        importedFilesContent = Object.entries(importedContents)
+                            .map(([importPath, content]) => `\n# Content of imported file: ${importPath}\n${content}`)
+                            .join('\n\n');
+                    }
                 }
 
                 progress.report({ message: "Initializing AI model...", increment: 30 });
@@ -778,7 +847,7 @@ ${generatedTests}`;
 
                 // Create language-specific prompt
                 let prompt;
-                
+
                 if (language === 'javascript' && testFramework === 'nodejs') {
                     // Special prompt for Node.js with Mocha/Chai
                     prompt = `Generate comprehensive unit tests for this Node.js code. Include:
@@ -795,6 +864,29 @@ ${generatedTests}`;
                     Here's the code to test:
                     
                     ${fileContent}
+                    
+                    Import the libraries, code and methods as needed correctly.
+                    Give the code as a single file so that I can just copy paste it in one go.
+                    Provide only the test code with detailed comments. Do not include any other text.`;
+                } else if (language === 'python') {
+                    // Special prompt for Python with imported files
+                    prompt = `Generate comprehensive unit tests for this Python code. Include:
+                    - Test cases for all functions/methods
+                    - Edge cases and error scenarios
+                    - Mocking of dependencies where needed
+                    - Clear test descriptions
+                    - Setup and teardown if required
+                    - Cover all possible scenarios
+                    
+                    Use pytest as the testing framework.
+                    
+                    Here's the main code to test:
+                    
+                    ${fileContent}
+                    
+                    Here are the contents of imported files that might be needed for testing:
+                    
+                    ${importedFilesContent}
                     
                     Import the libraries, code and methods as needed correctly.
                     Give the code as a single file so that I can just copy paste it in one go.
@@ -874,13 +966,310 @@ ${generatedTests}`;
         }
     });
 
+    // Helper function to determine project type
+    async function detectProjectType() {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) return null;
+
+        const fileCounts = {
+            python: 0,
+            java: 0,
+            nodejs: 0
+        };
+
+        for (const folder of workspaceFolders) {
+            // Check for Python files
+            const pythonFiles = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(folder, '**/*.py')
+            );
+            fileCounts.python += pythonFiles.length;
+
+            // Check for Java files
+            const javaFiles = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(folder, '**/*.java')
+            );
+            fileCounts.java += javaFiles.length;
+
+            // Check for Node.js files
+            const nodeFiles = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(folder, '**/*.js')
+            );
+            fileCounts.nodejs += nodeFiles.length;
+        }
+
+        // Return the language with most files
+        const maxCount = Math.max(...Object.values(fileCounts));
+        if (maxCount === 0) return null;
+
+        return Object.keys(fileCounts).find(key => fileCounts[key] === maxCount);
+    }
+
+    // Helper function to get relevant files for testing
+    async function getRelevantFiles(projectType) {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            console.log('No workspace folders found');
+            return [];
+        }
+
+        console.log('Workspace folders:', workspaceFolders.map(f => f.uri.fsPath));
+        const relevantFiles = [];
+
+        // Define patterns to exclude
+        const excludePatterns = [
+            // Directories to exclude
+            '**/test/**',
+            '**/tests/**',
+            '**/models/**',
+            '**/schemas/**',
+            '**/__pycache__/**',
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/venv/**',
+            '**/.venv/**',
+            '**/target/**',
+            '**/build/**',
+            '**/migrations/**',
+            '**/templates/**',
+            '**/static/**',
+            '**/config/**',
+            '**/docs/**',
+
+            // Specific files to exclude
+            '**/__init__.py',
+            '**/run.py',
+            '**/main.py',
+            '**/application.py',
+            '**/app.py',
+            '**/wsgi.py',
+            '**/manage.py',
+            '**/settings.py',
+            '**/urls.py',
+            '**/config.py',
+            '**/setup.py'
+        ];
+
+        for (const folder of workspaceFolders) {
+            let pattern;
+            if (projectType === 'python') {
+                pattern = '**/*.py';
+            } else if (projectType === 'java') {
+                pattern = '**/*.java';
+            } else if (projectType === 'nodejs') {
+                pattern = '**/*.js';
+            }
+
+            if (pattern) {
+                try {
+                    console.log(`Searching for files with pattern: ${pattern} in ${folder.uri.fsPath}`);
+
+                    // Get all files first
+                    const allFiles = await vscode.workspace.findFiles(
+                        new vscode.RelativePattern(folder, pattern),
+                        excludePatterns.join(',')
+                    );
+
+                    console.log(`Found ${allFiles.length} total files before filtering`);
+
+                    // Filter files based on path
+                    const filteredFiles = allFiles.filter(file => {
+                        const relativePath = path.relative(folder.uri.fsPath, file.fsPath).toLowerCase();
+                        console.log(`Checking file: ${relativePath}`);
+
+                        // Check if file is in repository, service, utils, or routes directory
+                        const isRelevant =
+                            relativePath.includes('repository') ||
+                            relativePath.includes('repositories') ||
+                            relativePath.includes('service') ||
+                            relativePath.includes('services') ||
+                            relativePath.includes('util') ||
+                            relativePath.includes('utils') ||
+                            relativePath.includes('helper') ||
+                            relativePath.includes('helpers') ||
+                            relativePath.includes('routes');
+
+                        console.log(`File ${relativePath} is ${isRelevant ? 'relevant' : 'not relevant'}`);
+                        return isRelevant;
+                    });
+
+                    console.log(`Found ${filteredFiles.length} relevant files after filtering`);
+                    relevantFiles.push(...filteredFiles);
+                } catch (error) {
+                    console.error('Error finding files:', error);
+                }
+            }
+        }
+
+        // Log total files found
+        console.log(`Total relevant files found: ${relevantFiles.length}`);
+        relevantFiles.forEach(file => console.log(`Found file: ${file.fsPath}`));
+
+        return relevantFiles;
+    }
+
+    // Helper function to create test file path maintaining directory structure
+    function getTestFilePath(sourceFilePath, projectType) {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) return null;
+
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        const relativePath = path.relative(workspaceRoot, sourceFilePath);
+        const dirName = path.dirname(relativePath);
+        const fileName = path.basename(sourceFilePath, path.extname(sourceFilePath));
+
+        // Create test file name based on project type
+        const testFileExtensions = {
+            python: '_test.py',
+            java: 'Test.java',
+            nodejs: '.test.js'
+        };
+
+        // Create test directory path
+        const testDirPath = path.join(workspaceRoot, 'tests', dirName);
+
+        // Create test file path
+        const testFileName = `${fileName}${testFileExtensions[projectType]}`;
+        const testFilePath = path.join(testDirPath, testFileName);
+
+        return {
+            testDirPath,
+            testFilePath
+        };
+    }
+
+    // New command for project-wide test generation
+    let generateProjectTests = vscode.commands.registerCommand('testgenie.generateProjectTests', async () => {
+        try {
+            // Show progress indicator
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Generating Project Tests",
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ message: "Detecting project type..." });
+
+                // Detect project type
+                const projectType = await detectProjectType();
+                if (!projectType) {
+                    throw new Error('Could not detect project type. Please ensure you have Python, Java, or Node.js files in your workspace.');
+                }
+
+                progress.report({ message: "Finding relevant files..." });
+
+                // Get relevant files
+                const relevantFiles = await getRelevantFiles(projectType);
+                if (relevantFiles.length === 0) {
+                    throw new Error('No relevant files found for test generation.');
+                }
+
+                // Get API key
+                let apiKey = await getApiKey(context);
+                if (!apiKey) {
+                    throw new Error('API key not found');
+                }
+
+                // Initialize Gemini
+                const gemini = new GoogleGenerativeAI(apiKey);
+                const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+                // Process each file
+                for (let i = 0; i < relevantFiles.length; i++) {
+                    const file = relevantFiles[i];
+                    const fileName = path.basename(file.fsPath);
+
+                    progress.report({
+                        message: `Processing file ${i + 1}/${relevantFiles.length}: ${fileName}`,
+                        increment: (100 / relevantFiles.length)
+                    });
+
+                    try {
+                        // Read file content
+                        const fileContent = fs.readFileSync(file.fsPath, 'utf8');
+
+                        // For Python files, get imported files content
+                        let importedFilesContent = '';
+                        if (projectType === 'python') {
+                            const imports = findImports(fileContent);
+                            const workspaceFolders = vscode.workspace.workspaceFolders;
+                            if (workspaceFolders) {
+                                const importedContents = await getImportedFilesContent(imports, workspaceFolders);
+                                importedFilesContent = Object.entries(importedContents)
+                                    .map(([importPath, content]) => `\n# Content of imported file: ${importPath}\n${content}`)
+                                    .join('\n\n');
+                            }
+                        }
+
+                        // Generate test cases
+                        const prompt = `Generate comprehensive unit tests for this ${projectType} code. Include:
+                        - Test cases for all functions/methods
+                        - Edge cases and error scenarios
+                        - Mocking of dependencies where needed
+                        - Clear test descriptions
+                        - Setup and teardown if required
+                        - Cover all possible scenarios
+                        
+                        Use the appropriate testing framework:
+                        - Python: pytest
+                        - Java: JUnit
+                        - Node.js: Jest
+                        
+                        Here's the code to test:
+                        
+                        ${fileContent}
+                        
+                        ${importedFilesContent ? `Here are the contents of imported files that might be needed for testing:\n\n${importedFilesContent}` : ''}
+                        
+                        Import the libraries, code and methods as needed correctly.
+                        Give the code as a single file so that I can just copy paste it in one go.
+                        Provide only the test code with detailed comments. Do not include any other text.`;
+
+                        const result = await model.generateContent(prompt);
+                        const response = await result.response;
+                        let generatedTests = response.text();
+
+                        // Clean up the response
+                        generatedTests = generatedTests.replace(/^```[\w-]*\n/g, '');
+                        generatedTests = generatedTests.replace(/\n```$/g, '');
+
+                        // Determine test file path maintaining directory structure
+                        const { testDirPath, testFilePath } = getTestFilePath(file.fsPath, projectType);
+
+                        // Create test directory if it doesn't exist
+                        if (!fs.existsSync(testDirPath)) {
+                            fs.mkdirSync(testDirPath, { recursive: true });
+                        }
+
+                        // Write test file
+                        fs.writeFileSync(testFilePath, generatedTests);
+
+                        // Log the test file creation
+                        console.log(`Created test file: ${testFilePath}`);
+
+                    } catch (error) {
+                        console.error(`Error processing file ${fileName}:`, error);
+                        // Continue with next file even if one fails
+                    }
+                }
+            });
+
+            vscode.window.showInformationMessage('✅ Project test cases generated successfully!');
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error generating project tests: ${error.message}`);
+            console.error("Error details:", error);
+        }
+    });
+
+    // Add the new command to subscriptions
+    context.subscriptions.push(generateProjectTests);
+
     context.subscriptions.push(generateUnitTests);
     context.subscriptions.push(chatbox);
 
     context.subscriptions.push(explainCode);
 
     context.subscriptions.push(disposable);
-	
+
 }
 async function getApiKey(context) {
     const secrets = context.secrets;
@@ -903,7 +1292,7 @@ async function getApiKey(context) {
     return apiKey;
 }
 
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
     activate,
