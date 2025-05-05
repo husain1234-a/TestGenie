@@ -1,28 +1,27 @@
 {
   "name": "testgenie",
   "displayName": "TestGenie",
-  "description": "Generate test cases from OpenAPI contracts",
+  "description": "AI-powered test generation extension",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.60.0"
   },
   "categories": [
     "Testing"
   ],
-  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:testgenie.generateTest",
+    "onCommand:testgenie.generateUnitTests",
+    "onCommand:testgenie.generateProjectTests",
+    "onCommand:testgenie.explainCode",
+    "onCommand:testGenie.StartChat"
+  ],
+  "main": "./src/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "testGenie.StartChat",
-        "title": "TestGenie: Open chat"
-      },
-      {
         "command": "testgenie.generateTest",
-        "title": "TestGenie: Generate Test Cases from OpenAPI Contract"
-      },
-      {
-        "command": "testgenie.explainCode",
-        "title": "TestGenie: Explain this code"
+        "title": "TestGenie: Generate API Tests"
       },
       {
         "command": "testgenie.generateUnitTests",
@@ -30,7 +29,15 @@
       },
       {
         "command": "testgenie.generateProjectTests",
-        "title": "TestGenie: Generate Tests for Entire Project"
+        "title": "TestGenie: Generate Project Tests"
+      },
+      {
+        "command": "testgenie.explainCode",
+        "title": "TestGenie: Explain Code"
+      },
+      {
+        "command": "testGenie.StartChat",
+        "title": "TestGenie: Start TestGenie Chat"
       }
     ],
     "menus": {
@@ -63,12 +70,11 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.1.0",
-    "js-yaml": "^4.1.0",
-    "testgenie": "file:"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "18.x",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.11.7",
     "eslint": "^8.54.0",
     "typescript": "^5.3.2"
   }
