@@ -7,7 +7,7 @@ class AIService {
     }
 
     async generateContent(prompt) {
-        try {
+        try { 
             const result = await this.model.generateContent(prompt);
             const response = await result.response;
             return response.text();
