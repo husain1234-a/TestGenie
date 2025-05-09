@@ -60,7 +60,12 @@ async function generateProjectTests(context, apiKey) {
                     }
 
                     // Generate test cases
-                    let generatedTests = await aiService.generateTestCases(fileContent, projectType, importedFilesContent);
+                    let generatedTests = await aiService.generateTestCases(
+                        fileContent,
+                        projectType,
+                        importedFilesContent,
+                        file.fsPath
+                    );
 
                     // Clean up the response
                     generatedTests = generatedTests.replace(/^```[\w-]*\n/g, '');

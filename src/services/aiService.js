@@ -17,7 +17,7 @@ class AIService {
         }
     }
 
-    async generateTestCases(code, language, importedFilesContent = '') {
+    async generateTestCases(code, language, importedFilesContent = '', filePath = '') {
         const prompt = `Generate comprehensive unit tests for this ${language} code. Include:
         - Test cases for all functions/methods
         - Edge cases and error scenarios
@@ -30,6 +30,16 @@ class AIService {
         - Python: pytest
         - Java: JUnit
         - Node.js: Jest
+        
+        Important Instructions for Module Imports:
+        - DO NOT use placeholder imports like "your_module"
+        - For Python files, use the exact module path based on the file location
+        - The file being tested is located at: ${filePath}
+        - Convert the file path to proper module import path
+        - Example: If file is at "app/services/transaction.py", use "from app.services.transaction"
+        - Example: If file is at "app/repo/code.py", use "from app.repo.code"
+        - Import all other required modules using their full paths
+        - Make sure all imports are properly resolved and match the project structure
         
         Here's the code to test:
         

@@ -14,7 +14,8 @@
     "onCommand:testgenie.generateUnitTests",
     "onCommand:testgenie.generateProjectTests",
     "onCommand:testgenie.explainCode",
-    "onCommand:testGenie.StartChat"
+    "onCommand:testGenie.StartChat",
+    "onCommand:testgenie.runTests"
   ],
   "main": "./src/extension.js",
   "contributes": {
@@ -38,6 +39,10 @@
       {
         "command": "testGenie.StartChat",
         "title": "TestGenie: Start TestGenie Chat"
+      },
+      {
+        "command": "testgenie.runTests",
+        "title": "TestGenie: Run Test Cases"
       }
     ],
     "menus": {
@@ -59,6 +64,9 @@
         },
         {
           "command": "testgenie.generateProjectTests"
+        },
+        {
+          "command": "testgenie.runTests"
         }
       ]
     }
@@ -70,11 +78,12 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.1.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "testgenie": "file:"
   },
   "devDependencies": {
-    "@types/vscode": "^1.60.0",
     "@types/node": "^16.11.7",
+    "@types/vscode": "^1.60.0",
     "eslint": "^8.54.0",
     "typescript": "^5.3.2"
   }

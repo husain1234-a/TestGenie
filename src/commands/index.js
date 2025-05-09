@@ -4,6 +4,7 @@ const generateUnitTests = require('./generateUnitTests');
 const generateProjectTests = require('./generateProjectTests');
 const explainCode = require('./explainCode');
 const chat = require('./chat');
+const runTests = require('./runTests');
 
 function registerCommands(context, apiKey) {
     const disposables = [
@@ -11,7 +12,8 @@ function registerCommands(context, apiKey) {
         vscode.commands.registerCommand('testgenie.generateUnitTests', () => generateUnitTests(context, apiKey)),
         vscode.commands.registerCommand('testgenie.generateProjectTests', () => generateProjectTests(context, apiKey)),
         vscode.commands.registerCommand('testgenie.explainCode', () => explainCode(context, apiKey)),
-        vscode.commands.registerCommand('testGenie.StartChat', () => chat(context, apiKey))
+        vscode.commands.registerCommand('testGenie.StartChat', () => chat(context, apiKey)),
+        vscode.commands.registerCommand('testgenie.runTests', () => runTests(context))
     ];
 
     return disposables;

@@ -75,10 +75,20 @@ async function generateUnitTests(context, apiKey) {
                 const workspaceFolders = vscode.workspace.workspaceFolders;
                 if (workspaceFolders) {
                     const workspaceRoot = workspaceFolders[0].uri.fsPath;
-                    
+
+                    // Get relative path of the file from workspace root
+                    const relativePath = path.relative(workspaceRoot, document.fileName);
+                    const modulePath = relativePath
+                        .replace(/\\/g, '.')
+                        .replace(/\//g, '.')
+                        .replace('.py', '');
+
+                    // Generate import statement based on file path
+                    importStatements = `from ${modulePath} import *`;
+
                     // Get all Python files in the project
                     const pythonFiles = await FileService.getAllPythonFiles();
-                    
+
                     // Create a map of module names to their paths
                     const moduleMap = new Map();
                     pythonFiles.forEach(file => {
@@ -89,9 +99,9 @@ async function generateUnitTests(context, apiKey) {
 
                     // Get imports from the current file
                     const imports = FileService.findImports(fileContent);
-                    
-                    // Generate import statements
-                    importStatements = imports.map(imp => {
+
+                    // Add other necessary imports
+                    importStatements += '\n' + imports.map(imp => {
                         // Try to find the actual module path
                         const modulePath = Array.from(moduleMap.keys()).find(key => key.endsWith(imp));
                         if (modulePath) {
@@ -101,17 +111,17 @@ async function generateUnitTests(context, apiKey) {
                     }).join('\n');
 
                     // Create conftest.py content
-                    conftestContent = `import os
-import sys
+                    conftestContent = ` import os
+                                        import sys
 
-# Add project root to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
+                                        # Add project root to Python path
+                                        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                                        sys.path.insert(0, project_root)
 
-# Import common test fixtures and configurations
-import pytest
-from unittest.mock import Mock, patch
-`;
+                                        # Import common test fixtures and configurations
+                                        import pytest
+                                        from unittest.mock import Mock, patch
+                                        `;
 
                     // Get imported files content
                     const importedContents = await FileService.getImportedFilesContent(imports, workspaceFolders);
@@ -129,7 +139,12 @@ from unittest.mock import Mock, patch
             progress.report({ message: "Generating test cases...", increment: 40 });
 
             // Generate test cases
-            let generatedTests = await aiService.generateTestCases(fileContent, language, importedFilesContent);
+            let generatedTests = await aiService.generateTestCases(
+                fileContent,
+                language,
+                importedFilesContent,
+                document.fileName
+            );
 
             // Clean up the response
             generatedTests = generatedTests.replace(/^```[\w-]*\n/g, '');

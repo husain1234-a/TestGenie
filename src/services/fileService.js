@@ -87,6 +87,21 @@ class FileService {
             '**/static/**',
             '**/config/**',
             '**/docs/**',
+            '**/conda/**',
+            '**/env/**',
+            '**/envs/**',
+            '**/environments/**',
+            '**/environments/**',
+            '**/environments/**',
+            '**/environments/**',
+            '**/conda-envs/**',
+            '**/.conda/**',
+            '**/.conda-envs/**',
+            '**/.env/**',
+            '**/.envs/**',
+            '**/.environments/**',
+            '**/.conda-envs/**',
+
 
             // Specific files to exclude
             '**/__init__.py',
