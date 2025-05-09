@@ -15,7 +15,8 @@
     "onCommand:testgenie.generateProjectTests",
     "onCommand:testgenie.explainCode",
     "onCommand:testGenie.StartChat",
-    "onCommand:testgenie.runTests"
+    "onCommand:testgenie.runTests",
+    "onCommand:testgenie.analyzeTestResults"
   ],
   "main": "./src/extension.js",
   "contributes": {
@@ -43,6 +44,10 @@
       {
         "command": "testgenie.runTests",
         "title": "TestGenie: Run Test Cases"
+      },
+      {
+        "command": "testgenie.analyzeTestResults",
+        "title": "TestGenie: Analyze Test Results"
       }
     ],
     "menus": {
@@ -67,6 +72,9 @@
         },
         {
           "command": "testgenie.runTests"
+        },
+        {
+          "command": "testgenie.analyzeTestResults"
         }
       ]
     }

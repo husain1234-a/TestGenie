@@ -132,6 +132,44 @@ class AIService {
         const prompt = "If any user asks about you then You are TestGenie a Chat AI developed by Yash Technologies and if user is asking any other question then answer normally dont include your introduction in your response also simply say sorry if user inputs any negative word, the message by user is enclosed under ***user message***. Here is the user message: *** " + message + " ***";
         return this.generateContent(prompt);
     }
+
+    async analyzeTestResults(testResults) {
+        const prompt = `Analyze this test results XML file and generate a comprehensive markdown report. Include:
+
+1. Test Summary
+   - Total number of tests
+   - Number of passed tests
+   - Number of failed tests
+   - Overall pass rate
+
+2. Failed Tests Analysis
+   - List of failed tests with their names
+   - Error messages and stack traces
+   - Potential causes and suggestions for fixes
+
+3. Test Coverage Analysis
+   - Identify areas with good test coverage
+   - Highlight areas that might need more test coverage
+   - Suggest additional test cases if needed
+
+4. Performance Insights
+   - Test execution time
+   - Slowest tests
+   - Suggestions for optimization
+
+5. Recommendations
+   - Areas for improvement
+   - Best practices to follow
+   - Suggestions for test maintenance
+
+Here's the test results XML:
+
+${testResults}
+
+Generate a well-formatted markdown report with clear sections and bullet points. Use markdown headers, lists, and code blocks where appropriate.`;
+
+        return this.generateContent(prompt);
+    }
 }
 
 module.exports = AIService; 

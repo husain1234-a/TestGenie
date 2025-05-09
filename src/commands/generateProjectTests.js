@@ -25,16 +25,16 @@ async function runTests(testFilePath, language) {
         python: async () => {
             // Check if pytest is installed
             terminal.sendText('pip show pytest || pip install pytest');
-            // Run pytest with verbose output
-            terminal.sendText('python -m pytest -v');
+            // Run pytest with verbose output and generate report
+            terminal.sendText('python -m pytest -v --junitxml=test-results.xml');
         },
         java: async () => {
             // Check if it's a Maven project
             if (fs.existsSync(path.join(workspaceRoot, 'pom.xml'))) {
-                terminal.sendText('mvn test');
+                terminal.sendText('mvn test -Dtest=*Test');
             } else {
-                // Fallback to direct JUnit execution
-                terminal.sendText('javac -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar *.java && java -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar org.junit.runner.JUnitCore');
+                // Fallback to direct JUnit execution with XML report
+                terminal.sendText('javac -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar *.java && java -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar org.junit.runner.JUnitCore -xml test-results.xml');
             }
         },
         nodejs: async () => {
@@ -43,10 +43,10 @@ async function runTests(testFilePath, language) {
             if (fs.existsSync(packageJsonPath)) {
                 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
                 if (packageJson.scripts && packageJson.scripts.test) {
-                    terminal.sendText('npm test');
+                    terminal.sendText('npm test -- --reporters=default --reporters=jest-junit');
                 } else {
                     // Add test script if missing
-                    terminal.sendText('npm install --save-dev jest && npm pkg set scripts.test="jest" && npm test');
+                    terminal.sendText('npm install --save-dev jest jest-junit && npm pkg set scripts.test="jest --reporters=default --reporters=jest-junit" && npm test');
                 }
             } else {
                 vscode.window.showErrorMessage('No package.json found. Please initialize your Node.js project first.');
@@ -60,6 +60,9 @@ async function runTests(testFilePath, language) {
         vscode.window.showErrorMessage(`Error running tests: ${error.message}`);
     }
 }
+
+
+
 
 async function generateProjectTests(context, apiKey) {
     try {
@@ -129,13 +132,13 @@ async function generateProjectTests(context, apiKey) {
                         }
                     }
 
-                    // Generate test cases
-                    let generatedTests = await aiService.generateTestCases(
-                        fileContent,
-                        projectType,
-                        importedFilesContent,
-                        file.fsPath
-                    );
+                    // Generate test cases with project structure
+                    console.log('Generating test cases...');
+                    let generatedTests = await aiService.generateTestCases(fileContent, projectType, importedFilesContent, projectStructure);
+                    if (!generatedTests) {
+                        throw new Error('No test cases were generated');
+                    }
+                    console.log('Test cases generated successfully');
 
                     // Clean up the response
                     generatedTests = generatedTests.replace(/^```[\w-]*\n/g, '');
