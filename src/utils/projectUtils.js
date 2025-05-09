@@ -89,8 +89,45 @@ function getTestFilePath(sourceFilePath, projectType) {
     };
 }
 
+function generateDirectoryTree(dir, prefix = '', excludeDirs = ['node_modules', '.git', '__pycache__', 'venv', '.env']) {
+    let tree = '';
+    const items = fs.readdirSync(dir);
+
+    items.forEach((item, index) => {
+        const itemPath = path.join(dir, item);
+        const isLast = index === items.length - 1;
+        const isDirectory = fs.statSync(itemPath).isDirectory();
+
+        // Skip excluded directories
+        if (isDirectory && excludeDirs.includes(item)) {
+            return;
+        }
+
+        const marker = isLast ? '└── ' : '├── ';
+        tree += `${prefix}${marker}${item}\n`;
+
+        if (isDirectory) {
+            const newPrefix = prefix + (isLast ? '    ' : '│   ');
+            tree += generateDirectoryTree(itemPath, newPrefix, excludeDirs);
+        }
+    });
+
+    return tree;
+}
+
+async function getProjectStructure() {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        return '';
+    }
+
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    return generateDirectoryTree(workspaceRoot);
+}
+
 module.exports = {
     getApiKey,
     detectProjectType,
-    getTestFilePath
+    getTestFilePath,
+    getProjectStructure
 }; 

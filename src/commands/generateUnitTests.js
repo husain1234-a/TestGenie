@@ -4,6 +4,106 @@ const fs = require('fs');
 const AIService = require('../services/aiService');
 const FileService = require('../services/fileService');
 
+let testTerminal = null;
+
+async function runTests(testFilePath, language) {
+    const terminal = vscode.window.createTerminal('TestGenie Tests');
+    terminal.show();
+
+    // Get workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+    }
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+    // Change to workspace directory
+    terminal.sendText(`cd "${workspaceRoot}"`);
+
+    const commands = {
+        python: async () => {
+            // Check if pytest is installed
+            terminal.sendText('pip show pytest || pip install pytest');
+            // Run pytest with verbose output
+            terminal.sendText('python -m pytest -v');
+        },
+        java: async () => {
+            // Check if it's a Maven project
+            if (fs.existsSync(path.join(workspaceRoot, 'pom.xml'))) {
+                terminal.sendText('mvn test');
+            } else {
+                // Fallback to direct JUnit execution
+                terminal.sendText('javac -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar *.java && java -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar org.junit.runner.JUnitCore');
+            }
+        },
+        javascript: async () => {
+            // Check if package.json exists and has test script
+            const packageJsonPath = path.join(workspaceRoot, 'package.json');
+            if (fs.existsSync(packageJsonPath)) {
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                if (packageJson.scripts && packageJson.scripts.test) {
+                    terminal.sendText('npm test');
+                } else {
+                    // Add test script if missing
+                    terminal.sendText('npm install --save-dev jest && npm pkg set scripts.test="jest" && npm test');
+                }
+            } else {
+                vscode.window.showErrorMessage('No package.json found. Please initialize your Node.js project first.');
+            }
+        },
+        typescript: async () => {
+            // Check if package.json exists and has test script
+            const packageJsonPath = path.join(workspaceRoot, 'package.json');
+            if (fs.existsSync(packageJsonPath)) {
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                if (packageJson.scripts && packageJson.scripts.test) {
+                    terminal.sendText('npm test');
+                } else {
+                    // Add test script if missing
+                    terminal.sendText('npm install --save-dev jest ts-jest @types/jest && npm pkg set scripts.test="jest" && npm test');
+                }
+            } else {
+                vscode.window.showErrorMessage('No package.json found. Please initialize your TypeScript project first.');
+            }
+        },
+        csharp: async () => {
+            // Check if it's a .NET project
+            if (fs.existsSync(path.join(workspaceRoot, '*.csproj'))) {
+                terminal.sendText('dotnet test');
+            } else {
+                vscode.window.showErrorMessage('No .NET project found. Please create a .NET project first.');
+            }
+        },
+        go: async () => {
+            // Run all Go tests
+            terminal.sendText('go test ./...');
+        },
+        ruby: async () => {
+            // Check if Gemfile exists
+            if (fs.existsSync(path.join(workspaceRoot, 'Gemfile'))) {
+                terminal.sendText('bundle exec rspec');
+            } else {
+                vscode.window.showErrorMessage('No Gemfile found. Please initialize your Ruby project first.');
+            }
+        },
+        php: async () => {
+            // Check if composer.json exists
+            if (fs.existsSync(path.join(workspaceRoot, 'composer.json'))) {
+                terminal.sendText('vendor/bin/phpunit');
+            } else {
+                vscode.window.showErrorMessage('No composer.json found. Please initialize your PHP project first.');
+            }
+        }
+    };
+
+    try {
+        await commands[language]();
+    } catch (error) {
+        vscode.window.showErrorMessage(`Error running tests: ${error.message}`);
+    }
+}
+
 async function generateUnitTests(context, apiKey) {
     try {
         const editor = vscode.window.activeTextEditor;
@@ -178,6 +278,19 @@ from unittest.mock import Mock, patch
             await vscode.window.showTextDocument(testDocument, {
                 viewColumn: vscode.ViewColumn.Beside
             });
+
+            // Ask user if they want to run the tests
+            const runTestsResponse = await vscode.window.showQuickPick(
+                ['Yes', 'No'],
+                {
+                    placeHolder: 'Would you like to run the generated tests?',
+                    title: 'Run Tests'
+                }
+            );
+
+            if (runTestsResponse === 'Yes') {
+                await runTests(testFilePath, language);
+            }
         });
 
         vscode.window.showInformationMessage('✅ Unit tests generated successfully!');
