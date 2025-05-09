@@ -4,6 +4,61 @@ const fs = require('fs');
 const AIService = require('../services/aiService');
 const FileService = require('../services/fileService');
 
+async function runTests(testFilePath, language) {
+    const terminal = vscode.window.createTerminal('TestGenie Tests');
+    terminal.show();
+
+    // Get workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+    }
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+    // Change to workspace directory
+    terminal.sendText(`cd "${workspaceRoot}"`);
+
+    const commands = {
+        python: async () => {
+            // Check if pytest is installed
+            terminal.sendText('pip show pytest || pip install pytest');
+            // Run pytest with verbose output
+            terminal.sendText('python -m pytest -v');
+        },
+        java: async () => {
+            // Check if it's a Maven project
+            if (fs.existsSync(path.join(workspaceRoot, 'pom.xml'))) {
+                terminal.sendText('mvn test');
+            } else {
+                // Fallback to direct JUnit execution
+                terminal.sendText('javac -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar *.java && java -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar org.junit.runner.JUnitCore ApiTests');
+            }
+        },
+        nodejs: async () => {
+            // Check if package.json exists and has test script
+            const packageJsonPath = path.join(workspaceRoot, 'package.json');
+            if (fs.existsSync(packageJsonPath)) {
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                if (packageJson.scripts && packageJson.scripts.test) {
+                    terminal.sendText('npm test');
+                } else {
+                    // Add test script if missing
+                    terminal.sendText('npm install --save-dev jest && npm pkg set scripts.test="jest" && npm test');
+                }
+            } else {
+                vscode.window.showErrorMessage('No package.json found. Please initialize your Node.js project first.');
+            }
+        }
+    };
+
+    try {
+        await commands[language]();
+    } catch (error) {
+        vscode.window.showErrorMessage(`Error running tests: ${error.message}`);
+    }
+}
+
 async function generateTests(context, apiKey) {
     try {
         const editor = vscode.window.activeTextEditor;
@@ -107,13 +162,26 @@ ${generatedTests}`;
             // Open the generated file
             const testDocument = await vscode.workspace.openTextDocument(testFilePath);
             await vscode.window.showTextDocument(testDocument);
+
+            // Ask user if they want to run the tests
+            const runTestsResponse = await vscode.window.showQuickPick(
+                ['Yes', 'No'],
+                {
+                    placeHolder: 'Would you like to run the generated tests?',
+                    title: 'Run Tests'
+                }
+            );
+
+            if (runTestsResponse === 'Yes') {
+                await runTests(testFilePath, selectedLanguage.value);
+            }
         });
 
-        vscode.window.showInformationMessage(`✅ Test cases have been generated successfully in ${{
-            'python': 'api_tests.py',
-            'java': 'ApiTests.java',
-            'nodejs': 'api.test.js'
-        }[selectedLanguage.value]}`);
+        vscode.window.showInformationMessage(`✅ Test cases have been generated successfully in ${
+            selectedLanguage.value === 'python' ? 'api_tests.py' :
+            selectedLanguage.value === 'java' ? 'ApiTests.java' :
+            'api.test.js'
+        }`);
 
     } catch (error) {
         vscode.window.showErrorMessage(`Error generating tests: ${error.message}`);

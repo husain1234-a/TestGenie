@@ -192,11 +192,35 @@ class FileService {
     }
 
     static async writeTestFile(testFilePath, content) {
-        const testDirPath = path.dirname(testFilePath);
-        if (!fs.existsSync(testDirPath)) {
-            fs.mkdirSync(testDirPath, { recursive: true });
+        try {
+            console.log('FileService: Writing test file to:', testFilePath);
+            const testDirPath = path.dirname(testFilePath);
+            console.log('FileService: Test directory path:', testDirPath);
+            
+            // Create the tests directory if it doesn't exist
+            if (!fs.existsSync(testDirPath)) {
+                console.log('FileService: Creating test directory...');
+                try {
+                    fs.mkdirSync(testDirPath, { recursive: true });
+                    console.log('FileService: Test directory created successfully');
+                } catch (mkdirError) {
+                    console.error('FileService: Error creating test directory:', mkdirError);
+                    throw new Error(`Failed to create test directory: ${mkdirError.message}`);
+                }
+            }
+            
+            console.log('FileService: Writing file content...');
+            try {
+                fs.writeFileSync(testFilePath, content);
+                console.log('FileService: File written successfully');
+            } catch (writeError) {
+                console.error('FileService: Error writing file:', writeError);
+                throw new Error(`Failed to write test file: ${writeError.message}`);
+            }
+        } catch (error) {
+            console.error('FileService: Error in writeTestFile:', error);
+            throw error;
         }
-        fs.writeFileSync(testFilePath, content);
     }
 }
 

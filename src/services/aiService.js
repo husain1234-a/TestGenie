@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { getProjectStructure } = require('../utils/projectUtils');
 
 class AIService {
     constructor(apiKey) {
@@ -55,6 +56,7 @@ class AIService {
     }
 
     async generateApiTests(contract, language) {
+        const projectStructure = await getProjectStructure();
         const prompts = {
             python: `Generate Python test cases using pytest for this OpenAPI contract. Include edge cases, validation testing, and error scenarios.
             Focus on:
@@ -66,6 +68,9 @@ class AIService {
             - Response status code verification
             - Response body validation
             - Error handling
+            
+            Here's the project structure to help with imports:
+            ${projectStructure}
             
             Contract:
             ${JSON.stringify(contract, null, 2)}
@@ -82,6 +87,9 @@ class AIService {
             - Response status code verification
             - Response body validation
             - Error handling
+            
+            Here's the project structure to help with imports:
+            ${projectStructure}
             
             Use RestAssured for API testing and include necessary imports.
             
@@ -100,6 +108,9 @@ class AIService {
             - Response status code verification
             - Response body validation
             - Error handling
+            
+            Here's the project structure to help with imports:
+            ${projectStructure}
             
             Include appropriate setup, teardown, and mocking as needed. Include necessary imports.
             
