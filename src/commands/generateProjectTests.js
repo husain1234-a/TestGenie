@@ -24,7 +24,7 @@ async function runTests(testFilePath, language) {
     const commands = {
         python: async () => {
             // Check if pytest and coverage are installed
-            terminal.sendText('pip show pytest coverage || pip install pytest coverage');
+            terminal.sendText('pip show pytest coverage || pip install pytest coverage || pip install pytest-cov');
             // Run pytest with coverage and generate XML report
             terminal.sendText('coverage run -m pytest -v --cov --junitxml=test-results.xml');
             terminal.sendText('coverage xml');

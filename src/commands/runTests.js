@@ -45,7 +45,7 @@ async function runTests(context) {
         terminal.sendText(setPythonPath);
 
         // Run pytest command with python -m
-        terminal.sendText('pip show pytest coverage || pip install pytest coverage');
+        terminal.sendText('pip show pytest coverage || pip install pytest coverage || pip install pytest-cov');
         // Run pytest with coverage and generate XML report
         terminal.sendText('coverage run -m pytest -v --cov --junitxml=test-results.xml');
         terminal.sendText('pytest --cov --junitxml=coverage-report.xml');
