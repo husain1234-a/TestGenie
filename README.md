@@ -1,31 +1,118 @@
-# testgenie README
+# TestGenie
 
-This is the README for your extension "testgenie". After writing up a brief description, we recommend including the following sections.
+TestGenie is an AI-powered test generation extension for Visual Studio Code that helps developers automate test creation and analysis.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+TestGenie provides the following key features:
 
-For example if there is an image subfolder under your extension project workspace:
+* **AI-Powered Test Generation**
+  * Generate API tests from project code
+  * Create unit tests for selected code
+  * Generate project-level test suites
+  * Support for Python, Java, and Node.js projects
 
-\!\[feature X\]\(images/feature-x.png\)
+* **Code Understanding**
+  * Explain selected code segments using AI
+  * Get detailed analysis of code functionality and patterns
+  * Receive suggestions for improvements
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+* **Test Management**
+  * Run test cases directly from VS Code
+  * Analyze test results with AI-generated insights
+  * View test coverage and performance metrics
+  * Get recommendations for test improvements
+
+* **Interactive AI Chat**
+  * Chat with TestGenie about testing strategies
+  * Get help with test-related questions
+  * Receive guidance on best practices
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+* Visual Studio Code version 1.60.0 or higher
+* Active internet connection for AI features
+* API key for Google's Generative AI (Gemini)
+
+## Installation
+
+1. Open Visual Studio Code
+2. Go to the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`)
+3. Search for "TestGenie"
+4. Click Install
+5. When prompted, enter your Gemini API key
+   * If you don't have an API key, you can get one from the Google AI Studio
+   * The API key will be securely stored in VS Code's secret storage
+
+## Usage
+
+### Generating Tests
+
+1. **Generate API Tests**
+   ```bash
+   1. Open your OpenAPI contract file (JSON or YAML)
+   2. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   3. Type "TestGenie: Generate API Tests"
+   4. Select the target programming language
+   ```
+
+2. **Generate Unit Tests**
+   ```bash
+   1. Open the source file
+   2. Select the code you want to test
+   3. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   4. Type "TestGenie: Generate Unit Tests"
+   ```
+
+3. **Generate Project Tests**
+   ```bash
+   1. Open your project in VS Code
+   2. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   3. Type "TestGenie: Generate Project Tests"
+   ```
+
+### Code Understanding
+
+1. **Explain Code**
+   ```bash
+   1. Select the code you want to understand
+   2. Right-click and select "TestGenie: Explain Code"
+   or
+   1. Select code
+   2. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   3. Type "TestGenie: Explain Code"
+   ```
+
+### Test Execution and Analysis
+
+1. **Run Tests**
+   ```bash
+   1. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   2. Type "TestGenie: Run Test Cases"
+   ```
+
+2. **Analyze Test Results**
+   ```bash
+   1. After running tests
+   2. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   3. Type "TestGenie: Analyze Test Results"
+   ```
+
+### AI Chat
+
+1. **Start Chat**
+   ```bash
+   1. Press Ctrl+Shift+P (Cmd+Shift+P on macOS)
+   2. Type "TestGenie: Start TestGenie Chat"
+   3. Type your questions or requests in the chat panel
+   ```
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `testgenie.enable`: Enable/disable the TestGenie extension
+* `testgenie.apiKey`: Your Gemini API key (stored securely)
 
 ## Known Issues
 
@@ -33,29 +120,15 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
 ### 1.0.0
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+Initial release of TestGenie with the following features:
+- AI-powered test generation
+- Code explanation
+- Test analysis
+- Interactive chat
 
 ---
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
 
 ## For more information
 
