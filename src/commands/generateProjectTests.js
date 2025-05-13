@@ -23,15 +23,43 @@ async function runTests(testFilePath, language) {
 
     const commands = {
         python: async () => {
-            // Check if pytest is installed
-            terminal.sendText('pip show pytest || pip install pytest');
-            // Run pytest with verbose output and generate report
-            terminal.sendText('python -m pytest -v --junitxml=test-results.xml');
+            // Check if pytest and coverage are installed
+            terminal.sendText('pip show pytest coverage || pip install pytest coverage');
+            // Run pytest with coverage and generate XML report
+            terminal.sendText('coverage run -m pytest -v --cov --junitxml=test-results.xml');
+            terminal.sendText('coverage xml');
         },
         java: async () => {
             // Check if it's a Maven project
             if (fs.existsSync(path.join(workspaceRoot, 'pom.xml'))) {
-                terminal.sendText('mvn test -Dtest=*Test');
+                // Add JaCoCo plugin if not present
+                const pomPath = path.join(workspaceRoot, 'pom.xml');
+                let pomContent = fs.readFileSync(pomPath, 'utf8');
+                if (!pomContent.includes('jacoco-maven-plugin')) {
+                    const jacocoPlugin = `
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.8.7</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>`;
+                    pomContent = pomContent.replace('</plugins>', `${jacocoPlugin}</plugins>`);
+                    fs.writeFileSync(pomPath, pomContent);
+                }
+                terminal.sendText('mvn clean test');
             } else {
                 // Fallback to direct JUnit execution with XML report
                 terminal.sendText('javac -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar *.java && java -cp .:junit-4.13.2.jar:hamcrest-core-1.3.jar org.junit.runner.JUnitCore -xml test-results.xml');
@@ -43,10 +71,19 @@ async function runTests(testFilePath, language) {
             if (fs.existsSync(packageJsonPath)) {
                 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
                 if (packageJson.scripts && packageJson.scripts.test) {
-                    terminal.sendText('npm test -- --reporters=default --reporters=jest-junit');
+                    // Add coverage configuration if not present
+                    if (!packageJson.jest) {
+                        packageJson.jest = {
+                            collectCoverage: true,
+                            coverageReporters: ['json', 'lcov', 'text', 'clover'],
+                            coverageDirectory: 'coverage'
+                        };
+                        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+                    }
+                    terminal.sendText('npm test -- --coverage --reporters=default --reporters=jest-junit');
                 } else {
-                    // Add test script if missing
-                    terminal.sendText('npm install --save-dev jest jest-junit && npm pkg set scripts.test="jest --reporters=default --reporters=jest-junit" && npm test');
+                    // Add test script with coverage if missing
+                    terminal.sendText('npm install --save-dev jest jest-junit && npm pkg set scripts.test="jest --coverage --reporters=default --reporters=jest-junit" && npm test');
                 }
             } else {
                 vscode.window.showErrorMessage('No package.json found. Please initialize your Node.js project first.');
@@ -60,9 +97,6 @@ async function runTests(testFilePath, language) {
         vscode.window.showErrorMessage(`Error running tests: ${error.message}`);
     }
 }
-
-
-
 
 async function generateProjectTests(context, apiKey) {
     try {

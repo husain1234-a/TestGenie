@@ -45,7 +45,11 @@ async function runTests(context) {
         terminal.sendText(setPythonPath);
 
         // Run pytest command with python -m
-        terminal.sendText('python -m pytest tests/ -v');
+        terminal.sendText('pip show pytest coverage || pip install pytest coverage');
+        // Run pytest with coverage and generate XML report
+        terminal.sendText('coverage run -m pytest -v --cov --junitxml=test-results.xml');
+        terminal.sendText('pytest --cov --junitxml=coverage-report.xml');
+
 
         vscode.window.showInformationMessage(`Running test cases with PYTHONPATH set to: ${prodCodePath}`);
     } catch (error) {

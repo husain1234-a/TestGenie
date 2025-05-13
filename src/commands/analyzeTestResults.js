@@ -4,6 +4,45 @@ const fs = require('fs');
 const AIService = require('../services/aiService');
 const FileService = require('../services/fileService');
 
+async function findCoverageReport(workspaceRoot) {
+    // Common coverage report locations and formats
+    const possiblePaths = [
+        // Python coverage
+        { path: 'coverage.xml', type: 'python' },
+        { path: 'htmlcov/index.html', type: 'python' },
+        // JavaScript/TypeScript coverage
+        { path: 'coverage/coverage-final.json', type: 'js' },
+        { path: 'coverage/lcov.info', type: 'js' },
+        // Java coverage
+        { path: 'target/site/jacoco/jacoco.xml', type: 'java' },
+        { path: 'target/site/jacoco/index.html', type: 'java' }
+    ];
+
+    for (const { path: coveragePath, type } of possiblePaths) {
+        const fullPath = path.join(workspaceRoot, coveragePath);
+        if (fs.existsSync(fullPath)) {
+            return { path: fullPath, type };
+        }
+    }
+
+    return null;
+}
+
+async function readCoverageData(coverageInfo) {
+    if (!coverageInfo) return null;
+
+    try {
+        const content = fs.readFileSync(coverageInfo.path, 'utf8');
+        return {
+            type: coverageInfo.type,
+            content
+        };
+    } catch (error) {
+        console.error('Error reading coverage file:', error);
+        return null;
+    }
+}
+
 async function analyzeTestResults(context, apiKey) {
     try {
         // Get workspace root
@@ -32,7 +71,12 @@ async function analyzeTestResults(context, apiKey) {
             // Read test results file
             const testResults = fs.readFileSync(testResultsPath, 'utf8');
 
-            progress.report({ message: "Initializing AI model...", increment: 30 });
+            // Find and read coverage report
+            progress.report({ message: "Looking for coverage reports...", increment: 10 });
+            const coverageInfo = await findCoverageReport(workspaceRoot);
+            const coverageData = coverageInfo ? await readCoverageData(coverageInfo) : null;
+
+            progress.report({ message: "Initializing AI model...", increment: 20 });
 
             // Initialize AI service
             const aiService = new AIService(apiKey);
@@ -40,7 +84,7 @@ async function analyzeTestResults(context, apiKey) {
             progress.report({ message: "Analyzing results with Gemini...", increment: 40 });
 
             // Generate analysis using Gemini
-            const analysis = await aiService.analyzeTestResults(testResults);
+            const analysis = await aiService.analyzeTestResults(testResults, coverageData);
 
             progress.report({ message: "Generating markdown report...", increment: 20 });
 

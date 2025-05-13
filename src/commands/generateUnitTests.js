@@ -26,7 +26,7 @@ async function runTests(testFilePath, language) {
             // Check if pytest is installed
             terminal.sendText('pip show pytest || pip install pytest');
             // Run pytest with verbose output
-            terminal.sendText('python -m pytest -v');
+            terminal.sendText('python -m pytest -v --cov');
         },
         java: async () => {
             // Check if it's a Maven project

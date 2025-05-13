@@ -133,8 +133,8 @@ class AIService {
         return this.generateContent(prompt);
     }
 
-    async analyzeTestResults(testResults) {
-        const prompt = `Analyze this test results XML file and generate a comprehensive markdown report. Include:
+    async analyzeTestResults(testResults, coverageData) {
+        let prompt = `Analyze this test results XML file and generate a comprehensive markdown report. Include:
 
 1. Test Summary
    - Total number of tests
@@ -164,9 +164,13 @@ class AIService {
 
 Here's the test results XML:
 
-${testResults}
+${testResults}`;
 
-Generate a well-formatted markdown report with clear sections and bullet points. Use markdown headers, lists, and code blocks where appropriate.`;
+        if (coverageData) {
+            prompt += `\n\nHere's the coverage data (${coverageData.type} format):\n\n${coverageData.content}`;
+        }
+
+        prompt += `\n\nGenerate a well-formatted markdown report with clear sections and bullet points. Use markdown headers, lists, and code blocks where appropriate.`;
 
         return this.generateContent(prompt);
     }
